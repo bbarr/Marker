@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+	
+	<script src="marker.js"></script>
+	<script>
+		
+		Marker.register('short_example', function() {
+			
+			this.div()
+				.p('this is a paragraph ')
+					.a({ href: '#' }, 'a link');
+
+		});
+
+		document.body.appendChild(Marker.render('short_example'));	
+
+		Marker.register('long_example', function(data) {
+
+			this.div()
+				.h3('a header').end()
+				.div({ className: 'inner' })
+					.p()
+						.text('some paragraph text ')
+						.a({ href: '#' }, 'a link').end()
+						.text('some more text')
+					.end()
+				.end()
+				
+				.partial('short_example')
+				
+				.section()
+					.span(data.foo);
+
+		});
+
+		document.body.appendChild(Marker.render('long_example', { foo: 'bar' }));
+
+	</script>
+</body>
+</html>
