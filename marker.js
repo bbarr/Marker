@@ -78,16 +78,8 @@ var Marker = (function() {
 			var attr, name;
 			for (name in attrs) {
 				attr = attrs[name];
-				switch(name) {
-					case 'style': 
-						this._append_styles(el, attr); 
-						break;
-					case 'class': 
-						el.className = attr; 
-						break;
-					default:
-						(typeof el[name] !== 'undefined') ? el[name] = attr : el.setAttribute(name, attr);
-				}
+				if (name === 'style') this._append_styles(el, attr);
+				else (typeof el[name] !== 'undefined') ? el[name] = attr : el.setAttribute(name, attr);
 			}
 		},
 
