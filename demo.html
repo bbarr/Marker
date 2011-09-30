@@ -7,11 +7,12 @@
 	<script src="marker.js"></script>
 	<script>
 		
-		Marker.register('short_example', function() {
+		Marker.register('short_example', function(a, b) {
 			
 			this.div()
-				.p('this is a paragraph ')
-					.a({ href: '#' }, 'a link');
+				.p('this is a paragraph ' + a)
+					.a({ href: '#' })
+					  .text(' and a link' + b);
 
 		});
 
@@ -29,14 +30,14 @@
 					.end()
 				.end()
 				
-				.partial('short_example')
+				.partial('short_example', data.a, data.b)
 				
 				.section()
 					.span(data.foo);
 
 		});
 
-		document.body.appendChild(Marker.render('long_example', { foo: 'bar' }));
+		document.body.appendChild(Marker.render('long_example', { foo: 'bar', a: 'a variable', b: 'b variable' }));
 
 	</script>
 </body>

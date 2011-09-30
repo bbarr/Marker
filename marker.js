@@ -4,6 +4,7 @@ var Marker = (function() {
 		this.fn = this.active_fn = fn;
 		this.storage = document.createDocumentFragment();
 		this.stack = [];
+		this.cache = {};
 	}
 
 	Template.prototype = {
@@ -19,19 +20,7 @@ var Marker = (function() {
 
 			return this;
 		},
-		
-		place: function(el) {
-	
-			if (this.stack[0]) {
-				this.stack[this.stack.length - 1].appendChild(el);
-			}
-			else {
-				this.storage.appendChild(el);
-			}
-	
-			this.stack.push(el);
-		},
-	
+			
 		end: function() {
 	
 			var last = this.stack.pop();
@@ -78,11 +67,24 @@ var Marker = (function() {
 			var attr, name;
 			for (name in attrs) {
 				attr = attrs[name];
+				if (name === 'cache') this.cache[attr] = el;
 				if (name === 'style') this._append_styles(el, attr);
 				else (typeof el[name] !== 'undefined') ? el[name] = attr : el.setAttribute(name, attr);
 			}
 		},
-
+    
+    _place: function(el) {
+	
+			if (this.stack[0]) {
+				this.stack[this.stack.length - 1].appendChild(el);
+			}
+			else {
+				this.storage.appendChild(el);
+			}
+	
+			this.stack.push(el);
+		},
+    
 		_to_html: function(data) {
 			
 			this._construct(data);
@@ -134,11 +136,11 @@ var Marker = (function() {
 					this._append_attributes(el, attrs);
 				}
 	
-				this.place(el);
+				this._place(el);
 	
 				return this;
-		    	}
-		    },
+		  }
+		  },
 		    len = tags.length,
 		    i = 0;
 	
@@ -154,7 +156,7 @@ var Marker = (function() {
 		register: function(name, fn) {
 			var template = this.templates[name];
 			if (template) throw new Error('Template: ' + name + ' already exists');
-			this.templates[name] = new Template(fn);
+			return this.templates[name] = new Template(fn);
 		},
 		
 		render: function(name, data) {
