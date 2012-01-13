@@ -10,7 +10,9 @@ var Marker = (function() {
 		this.fn = this.active_fn = fn;
 		this.storage = document.createDocumentFragment();
 		this.stack = [];
-		this.cache = {};
+		this.ignoring = null;
+		this.stack_length_before_conditional = 0;
+		this.ignored = 0;
 	}
 
 	Template.prototype = {
@@ -22,24 +24,38 @@ var Marker = (function() {
 		 */
 		partial: function(name) {
 		  
+		  if (this.ignoring) {
+        return this;
+      }
+		  
 			var template = (typeof name === 'function') ? name : Marker.templates[name];
 			if (!template) throw new Error('Template: ' + name + ' not found');
 
 			// hijack the active_fn so the partial builds itself right into the current template 
 			// use either .fn property or the template itself we are given a funtion to call
 			this.active_fn = template.fn || template;
-			
-			var args = [].slice.call(arguments);
-			args.shift();
-			
+			var args = [].slice.call(arguments, 1);
 			this._construct.apply(this, args);
 			this.active_fn = this.fn;
 
 			return this;
 		},
 		
-		_: function() {
+		end: function() {
 
+      if (this._in_conditional()) {
+        if (this.ignoring || this.stack.length === this.stack_length_before_conditional) {
+          if (this.ignored === 0) {
+            this.ignoring = null;
+            this.condition_was_met = false;
+          }
+          else {
+            this.ignored--;
+          }
+          return this;
+        }
+      }
+			
 			var last = this.stack.pop();
 
 			if (!this.stack[0] && last) {
@@ -50,23 +66,52 @@ var Marker = (function() {
 		},
 
 		html: function(html) {
-		  
+	    if (this.ignoring) return this;
 			var el = this.stack[this.stack.length - 1];
-			this._append_html(el, text);
+			this._append_html_content(el, text);
 
 			return this;
 		},
 
 		text: function(text) {
-	
+	    if (this.ignoring) return this;
 			var el = this.stack[this.stack.length - 1];
-			this._append_text(el, text);
+			this._append_content(el, text);
 
 			return this;
 		},
-
-		_elements: [],
+		
+		if: function(bool) {
+      this.ignoring = !bool;
+      if (!this.ignoring) this.condition_was_met = true;
+      this.stack_length_before_conditional = this.stack.length;
+      return this;
+		},
+		
+		unless: function(bool) {
+      this.ignoring = bool;		  
+      if (!this.ignoring) this.condition_was_met = true;
+      this.stack_length_before_conditional = this.stack.length;      
+		  return this;
+		},
 	
+	  else: function() {
+	    this.ignoring = this.condition_was_met;
+	    return this;
+	  },
+	  
+	  else_if: function(bool) {
+      this.ignoring = !bool;
+      if (!this.ignoring) this.condition_was_met = true;      
+      return this;
+	  },
+	
+		_elements: [],
+		
+		_in_conditional: function() {
+		  return typeof this.ignoring === 'boolean';
+		},
+		
 		_create_element: function(tag) {					
 
 			var els = this._elements;
@@ -75,11 +120,11 @@ var Marker = (function() {
 			return els[tag].cloneNode(false);
 		},
 
-		_append_text: function(el, text) {
+		_append_content: function(el, text) {
 			(/\&\S+;/.test(text)) ? el.innerHTML += text : el.appendChild(document.createTextNode(text));
 		},
 
-		_append_html: function(el, html) {
+		_append_html_content: function(el, html) {
 			el.innerHTML += text;
 		},
 
@@ -97,7 +142,6 @@ var Marker = (function() {
 			for (name in attrs) {
 				attr = attrs[name];
 				if (name === 'style') this._append_styles(el, attr);
-				else if (name === 'cache') this.cache[attr] = el;
 				else (typeof el[name] !== 'undefined') ? el[name] = attr : el.setAttribute(name, attr);
 			}
 		},
@@ -131,7 +175,7 @@ var Marker = (function() {
 			this.active_fn.apply(this, [].slice.call(arguments));
 
 			while (this.stack[current_stack_count]) {
-				this._();
+				this.end();
 			}
 		}
 	};
@@ -146,42 +190,37 @@ var Marker = (function() {
 			'ul','ol','li','dl','dt','dd',
 			'table','tr','td','th','tbody','thead','tfoot','col','colgroup','caption',
 			'form','input','textarea','select','option','optgroup','button','label','fieldset','legend'
-	  ],
-	  proto = Template.prototype,
-		generate = function(tag) {
+	    	    ],
+		    generate = function(tag) {
 	
-			proto[tag] = function(attrs, text, has_children) {
+			Template.prototype[tag] = function(attrs, content) {
+	
+	      if (this.ignoring) {
+	        this.ignored++;
+	        return this;
+        }
 	
 				var el = this._create_element(tag),
 				    attrs_type = typeof attrs;
 	
-				if (text) {
-					this._append_text(el, text);
+				if (content) {
+					this._append_content(el, content);
 				}
 	
 				if (attrs_type == 'string' || attrs_type == 'number') {
-					this._append_text(el, attrs);
+					this._append_content(el, attrs);
 				}
 				else {
 					this._append_attributes(el, attrs);
 				}
 	
 				this._place(el);
-				
-				if (!has_children) {
-				  this._();
-				}
 	
 				return this;
-		  };
-		  
-		  proto[tag + '_'] = function(attrs) {
-        this[tag](attrs, null, true);
-        return this;
-		  };
-		},
-		len = tags.length,
-		i = 0;
+		    	}
+		    },
+		    len = tags.length,
+		    i = 0;
 	
 		for (; i < len; i++) {
 			generate(tags[i]);
@@ -193,27 +232,18 @@ var Marker = (function() {
 		templates: {},
 		
 		register: function(name, fn) {
-
 			var template = this.templates[name];
 			if (template) throw new Error('Template: ' + name + ' already exists');
-
 			this.templates[name] = new Template(fn);
 		},
 		
 		render: function(name) {
-
 			var template = this.templates[name];
 			if (!template) throw new Error('Template: ' + name + ' not found');
-
 			var args = [].slice.call(arguments);
 			args.shift();
-			
 			var html = template._to_html.apply(template, args);
-			
-			return {
-			  html: (html.childNodes.length === 1) ? html.childNodes[0] : html,
-			  cache: template.cache
-			}
+			return (html.childNodes.length === 1) ? html.childNodes[0] : html;
 		}
 	}
 })();
