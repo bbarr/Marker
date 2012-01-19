@@ -1,249 +1,301 @@
 /**
- *  Javascript Templating
+ *  HTML Templates for Javascript  
  *
  *  @author Brendan Barr brendanbarr.web@gmail.com
  */
 
 var Marker = (function() {
-	
-	var Template = function(fn) {
-		this.fn = this.active_fn = fn;
+  
+  var api,
+      
+      Template, ElementFactory, Stack, Logic,
+      
+      ARRAY_SLICE = [].slice,
+      TAGS = [
+  			'p','h1','h2','h3','h4','h5','h6','strong','em','abbr','address','bdo','blockquote','cite','q','code','ins','del','dfn','kbd','pre','samp','var','br',
+  			'div', 'span', 'section', 'header', 'footer', 'sidebar', 'sub', 'sup',
+  			'a', 'base',
+  			'img','area','map','object','param', 'canvas',
+  			'ul','ol','li','dl','dt','dd',
+  			'table','tr','td','th','tbody','thead','tfoot','col','colgroup','caption',
+  			'form','input','textarea','select','option','optgroup','button','label','fieldset','legend'
+  	  ];
+  
+  
+  /**
+   *  Templates provide the API for building HTML
+   */
+  Template = function(fn) {
+    this.cache = {};
+    this.fns = new Stack([ fn ]);
 		this.storage = document.createDocumentFragment();
-		this.stack = [];
-		this.ignoring = null;
-		this.stack_length_before_conditional = 0;
-		this.ignored = 0;
-	}
-
-	Template.prototype = {
-
-		/**
-		 * Reuses an existing Marker template
-		 * @param name {String} The name of the template
-		 * @param 2..n {Arguments} A list of arguments to pass into the template
-		 */
-		partial: function(name) {
-		  
-		  if (this.ignoring) {
-        return this;
-      }
-		  
-			var template = (typeof name === 'function') ? name : Marker.templates[name];
-			if (!template) throw new Error('Template: ' + name + ' not found');
-
-			// hijack the active_fn so the partial builds itself right into the current template 
-			// use either .fn property or the template itself we are given a funtion to call
-			this.active_fn = template.fn || template;
-			var args = [].slice.call(arguments, 1);
-			this._construct.apply(this, args);
-			this.active_fn = this.fn;
-
+		this.element_factory = new ElementFactory(this);
+		this.elements = new Stack;
+		this.logic = new Logic;
+  };
+  
+  Template.prototype = {
+  
+    partial: function(name) {
+      
+      if (this.logic.ignoring) return this;
+      
+			var template = api.templates[name];
+			if (!template) return false;
+			
+			this.fns.push(template.fns.top);
+			this._render.apply(this, ARRAY_SLICE.call(arguments, 1));
+			this.fns.pop();
+			
 			return this;
 		},
 		
 		end: function() {
 
-      if (this._in_conditional()) {
-        if (this.ignoring || this.stack.length === this.stack_length_before_conditional) {
-          if (this.ignored === 0) {
-            this.ignoring = null;
-            this.condition_was_met = false;
+	    if (this.logic.active) {
+		    this.logic.states.top.depth--;
+		    if (this.logic.states.top.depth < 0) this.logic.exit();
+		    else if (!this.logic.ignoring) this._pop();
+		  }
+		  else this._pop();
+		  
+      return this;
+		},
+    
+    when: function(bool) {
+      this.logic.enter(bool);
+      return this;
+    },
+    
+    else_when: function(bool) {
+      if (!this.logic.states.top.already_passed) {
+        if (bool) this.logic.update({ already_passing: true, ignoring: false });
+        else this.logic.update({ ignoring: true });
+      }
+      else this.logic.update({ ignoring: true });
+      
+      return this;
+    },
+    
+    otherwise: function() {
+      return this.else_when(true);
+    },
+    
+    each: function(obj, fn) {
+      if (this.logic.active) this.logic.states.top.depth++;
+      if (!this.logic.ignoring) {
+        if (typeof obj.length !== 'undefined') {
+          for (var i = 0, len = obj.length; i < len; i++) {
+            if (!fn.call(this, obj[i], i) === false) break;
           }
-          else {
-            this.ignored--;
+        }
+        else {
+          for (var key in obj) {
+            if (fn.call(this, obj[key], key) === false) break;
           }
-          return this;
         }
       }
-			
-			var last = this.stack.pop();
-
-			if (!this.stack[0] && last) {
-				this.storage.appendChild(last);
-			}
-
-			return this;
-		},
-
-		html: function(html) {
-	    if (this.ignoring) return this;
-			var el = this.stack[this.stack.length - 1];
-			this._append_html_content(el, text);
-
-			return this;
-		},
-
-		text: function(text) {
-	    if (this.ignoring) return this;
-			var el = this.stack[this.stack.length - 1];
-			this._append_content(el, text);
-
-			return this;
-		},
-		
-		if: function(bool) {
-      this.ignoring = !bool;
-      if (!this.ignoring) this.condition_was_met = true;
-      this.stack_length_before_conditional = this.stack.length;
       return this;
-		},
-		
-		unless: function(bool) {
-      this.ignoring = bool;		  
-      if (!this.ignoring) this.condition_was_met = true;
-      this.stack_length_before_conditional = this.stack.length;      
-		  return this;
-		},
+    },
 	
-	  else: function() {
-	    this.ignoring = this.condition_was_met;
-	    return this;
-	  },
-	  
-	  else_if: function(bool) {
-      this.ignoring = !bool;
-      if (!this.ignoring) this.condition_was_met = true;      
-      return this;
-	  },
-	
-		_elements: [],
-		
-		_in_conditional: function() {
-		  return typeof this.ignoring === 'boolean';
-		},
-		
-		_create_element: function(tag) {					
+    _pop: function() {
+      var last = this.elements.pop();
+			if (last && !this.elements.length) this.storage.appendChild(last);
+			return this;
+    },
 
-			var els = this._elements;
-			if (!els[tag]) els[tag] = (tag === 'fragment') ? document.createDocumentFragment() : document.createElement(tag);
-	
-			return els[tag].cloneNode(false);
+		_push: function(el) {
+			if (this.elements.length) this.elements.top.appendChild(el);
+			else this.storage.appendChild(el);
+			this.elements.push(el);
 		},
 
-		_append_content: function(el, text) {
-			(/\&\S+;/.test(text)) ? el.innerHTML += text : el.appendChild(document.createTextNode(text));
-		},
+		_render: function() {
+			this.fns.top.apply(this, ARRAY_SLICE.call(arguments));
+			while (this.elements.length) this.end();
+			return this.storage;
+		}
+  };
 
-		_append_html_content: function(el, html) {
-			el.innerHTML += text;
-		},
-
-		_append_styles: function(el, styles) {
-			
-			var name, style = el.style;
+  /**
+   *  ElementFactory is soley responsible for creating the DOM nodes
+   */
+  ElementFactory = function(template) {
+    this.template = template;
+    this.current;
+  };
+  
+  ElementFactory.prototype = {
+    
+    create: function(tag, attrs, content) {
+      
+      this.current = document.createElement(tag);
+      
+      if (attrs) {
+        if (typeof attrs !== 'object') {
+          this._content(attrs);
+        }
+        else {
+          this._attrs(attrs);
+          if (content) {
+            this._content(content);
+          }
+        }
+      }
+      
+      return this.current;
+    },
+    
+    _content: function(content) {
+      this.current.innerHTML += content;
+    },
+    
+    _css: function(styles) {
+			var name, style = this.current.style;
 			for (name in styles) {
 				style[name] = styles[name];
 			}
-		},
-	
-		_append_attributes: function(el, attrs) {
-			
-			var attr, name;
+    },
+    
+    _attrs: function(attrs) {
+			var attr, name, el = this.current;
 			for (name in attrs) {
 				attr = attrs[name];
-				if (name === 'style') this._append_styles(el, attr);
-				else (typeof el[name] !== 'undefined') ? el[name] = attr : el.setAttribute(name, attr);
-			}
-		},
-
-		_place: function(el) {
-
-			if (this.stack[0]) {
-				this.stack[this.stack.length - 1].appendChild(el);
-			}
-			else {
-				this.storage.appendChild(el);
-			}
-
-			this.stack.push(el);
-		},
-
-		_to_html: function() {
-			
-			this._construct.apply(this, [].slice.call(arguments));
-			
-			var html = this.storage.cloneNode(true);
-			this.storage = document.createDocumentFragment();
-	
-			return html;
-		},
-
-		_construct: function() {
-
-			var current_stack_count = this.stack.length;
-	
-			this.active_fn.apply(this, [].slice.call(arguments));
-
-			while (this.stack[current_stack_count]) {
-				this.end();
-			}
-		}
-	};
-	
-	(function() {
-
-		var tags = [
-			'p','h1','h2','h3','h4','h5','h6','strong','em','abbr','address','bdo','blockquote','cite','q','code','ins','del','dfn','kbd','pre','samp','var','br',
-			'div', 'span', 'section', 'header', 'footer', 'sidebar', 'sub', 'sup',
-			'a', 'base',
-			'img','area','map','object','param', 'canvas',
-			'ul','ol','li','dl','dt','dd',
-			'table','tr','td','th','tbody','thead','tfoot','col','colgroup','caption',
-			'form','input','textarea','select','option','optgroup','button','label','fieldset','legend'
-	    	    ],
-		    generate = function(tag) {
-	
-			Template.prototype[tag] = function(attrs, content) {
-	
-	      if (this.ignoring) {
-	        this.ignored++;
-	        return this;
-        }
-	
-				var el = this._create_element(tag),
-				    attrs_type = typeof attrs;
-	
-				if (content) {
-					this._append_content(el, content);
-				}
-	
-				if (attrs_type == 'string' || attrs_type == 'number') {
-					this._append_content(el, attrs);
-				}
+				if (name === 'style') this._css(attr);
+				else if (name === 'cache') this.template.cache[attr] = el;
 				else {
-					this._append_attributes(el, attrs);
+				  el[name] = attr;
+				  el.setAttribute(name, attr)
 				}
-	
-				this._place(el);
-	
-				return this;
-		    	}
-		    },
-		    len = tags.length,
-		    i = 0;
-	
-		for (; i < len; i++) {
-			generate(tags[i]);
+			}      
+    }
+  };
+  
+  /** 
+   *  Stack has helpers for arrays that act like stacks
+   */
+  Stack = function(initial_stack) {
+    this.stack = initial_stack || [];
+    this.length = this.stack.length;
+    this.empty = this.length === 0;
+    this.top = this.stack[this.length - 1];
+  };
+  
+  Stack.prototype = {
+    
+    push: function(item) {
+      this.length++;
+      this.top = item;
+      this.empty = false;
+      this.stack.push(item);  
+    },
+    
+    pop: function() {
+      this.length--;
+      this.top = this.stack[this.length - 1];
+      this.empty = !!this.top;
+      return this.stack.pop();
+    }
+  };
+  
+  /**
+   *  Logic manages logic states, for when, else_when and otherwise
+   */
+  Logic = function() {
+    this.states = new Stack;
+    this.ignoring = false;
+    this.active = false;
+  };
+  
+  Logic.prototype = {
+    
+    enter: function(bool) {
+      this.states.push({ depth: 0, ignoring: !bool, already_passed: bool });
+      this._update();
+    },
+    
+    exit: function() {
+      this.states.pop();
+      this._update();
+    },
+    
+    update: function(changes) {
+      for (var key in changes) {
+        this.states.top[key] = changes[key];
+      }
+      this._update();
+    },
+    
+    _update: function() {
+      
+      var self = this;
+      
+      this.ignoring = false;
+      this.states.stack.forEach(function(state) {
+        if (state.ignoring) self.ignoring = true;
+      });
+      
+      this.active = !!this.states.stack.length;
+    }
+  };
+  
+  // generate tag methods
+	(function() {
+		for (var i = 0, len = TAGS.length; i < len; i++) {
+		  Template.prototype[TAGS[i]] = (function(tag) {
+		    return function(attrs, content) {
+		      
+		      if (this.logic.active) {
+		        this.logic.states.top.depth++;
+		      }
+		      
+	        if (!this.logic.ignoring) {
+		        this._push(this.element_factory.create(tag, attrs, content));
+		      }
+		      
+		      return this;
+		    }
+		  })(TAGS[i]);
 		}
-	})();	
-
-	return {
-		
+	})();
+	
+  api = {
+    
 		templates: {},
 		
 		register: function(name, fn) {
 			var template = this.templates[name];
-			if (template) throw new Error('Template: ' + name + ' already exists');
-			this.templates[name] = new Template(fn);
+			if (template) return false;
+			return this.templates[name] = new Template(fn);
 		},
 		
 		render: function(name) {
+			
 			var template = this.templates[name];
-			if (!template) throw new Error('Template: ' + name + ' not found');
-			var args = [].slice.call(arguments);
-			args.shift();
-			var html = template._to_html.apply(template, args);
-			return (html.childNodes.length === 1) ? html.childNodes[0] : html;
+			if (!template) return false;
+			
+			var html = template._render.apply(template, ARRAY_SLICE.call(arguments, 1));
+			html = (html.childNodes.length === 1) ? html.childNodes[0] : html;
+			
+			return {
+			  cache: template.cache,
+			  html: html
+			}
 		}
-	}
+  };
+  
+  // for testing
+	if (typeof jasmine !== 'undefined') {
+    api.__exec__ = function() {
+      var re = /(\(\))$/,
+          args = [].slice.call(arguments),
+          name = args.shift(),
+          is_method = re.test(name),
+          name = name.replace(re, ''),
+          target = eval(name);
+      return is_method ? target.apply(this, args) : target;
+    }
+  };
+  
+  return api;
 })();

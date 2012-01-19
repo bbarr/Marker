@@ -10,10 +10,15 @@
 		Marker.register('short_example', function(link_href, link_text) {
 			
 			this
-			  .div_()
-				  .p_('Some paragraph.')
-					  .a({ href: link_href, cache: 'the_link' }, link_text);
-					
+			  .div()
+				  .p('Some paragraph.')
+					  .when(true)
+              .when(false)
+                .p('nested when').end()
+              .end()
+					    .a({ href: link_href, cache: 'the_link' }, 'when is true').end()
+					  .end();
+					  
 		});
 		
 		var rendered = Marker.render('short_example', 'http://jomamma.com', 'jomamma');
@@ -27,24 +32,24 @@
 		Marker.register('long_example', function(data) {
 
 			this
-			  .div_()
-				  .h3('a header')
-				  .div_({ className: 'inner' })
-					  .p_()
+			  .div()
+				  .h3('a header').end()
+				  .div({ className: 'inner' })
+					  .p()
 						  .text('some paragraph text ')
-						  .a({ href: '#' }, 'a link')
+						  .a({ href: '#' }, 'a link').end()
 						  .text('some more text')
-						._()
-				  ._()
-				._()
+						.end()
+				  .end()
+				.end()
 				
 				.partial('short_example', data.a, data.b)
 				
-				.section_()
+				.section()
 					.span(data.foo);
 		});
 
-		document.body.appendChild(Marker.render('long_example', { foo: 'bar', a: 'a variable', b: 'b variable' }).html);
+		//document.body.appendChild(Marker.render('long_example', { foo: 'bar', a: 'a variable', b: 'b variable' }).html);
 
 	</script>
 </body>
