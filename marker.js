@@ -253,6 +253,10 @@ var Marker = (function() {
 		        this._push(this.element_factory.create(tag, attrs, content));
 		      }
 		      
+		      if (arguments[arguments.length - 1] === true) {
+		        this.end();
+		      }
+		      
 		      return this;
 		    }
 		  })(TAGS[i]);

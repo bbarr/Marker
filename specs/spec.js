@@ -219,6 +219,13 @@ describe('Marker', function() {
           expect(template[tag]).toBeDefined();
         });
       });
+      
+      it ('should self close if last argument is true', function() {
+        template
+          .div(true)
+          .p();
+        expect(template.storage.childNodes[1]).toBeDefined();
+      });
     });
   });
 
