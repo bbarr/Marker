@@ -6,6 +6,18 @@
 	
 	<script src="marker.js"></script>
 	<script>
+	
+	Marker.register('test', function(data) {
+    this
+      .div()
+        .when(data.name)
+          .h3(data.name).end()
+        .end()
+        .p(data.content);
+  });
+
+  var rendered = Marker.render('test', { name: 'bbarr', content: 'blah' });
+  console.log(rendered);
 		
 		Marker.register('short_example', function(link_href, link_text) {
 			

@@ -28,10 +28,10 @@ var Marker = (function() {
   Template = function(fn) {
     this.cache = {};
     this.fns = new Stack([ fn ]);
-		this.storage = document.createDocumentFragment();
-		this.element_factory = new ElementFactory(this);
-		this.elements = new Stack;
-		this.logic = new Logic;
+    this.storage = document.createDocumentFragment();
+    this.element_factory = new ElementFactory(this);
+    this.elements = new Stack;
+    this.logic = new Logic;
   };
   
   Template.prototype = {
@@ -39,15 +39,15 @@ var Marker = (function() {
     partial: function(name) {
       
       if (this.logic.ignoring) return this;
-      
-			var template = api.templates[name];
-			if (!template) return false;
-			
-			this.fns.push(template.fns.top);
-			this._render.apply(this, ARRAY_SLICE.call(arguments, 1));
-			this.fns.pop();
-			
-			return this;
+
+      var template = api.templates[name];
+      if (!template) return false;
+
+      this.fns.push(template.fns.top);
+      this._render.apply(this, ARRAY_SLICE.call(arguments, 1));
+      this.fns.pop();
+
+      return this;
 		},
 		
 		end: function() {
@@ -275,7 +275,7 @@ var Marker = (function() {
 			if (!template) return false;
 			
 			var html = template._render.apply(template, ARRAY_SLICE.call(arguments, 1));
-			html = (html.childNodes.length === 1) ? html.childNodes[0] : html;
+			html = (!html.childNodes[1]) ? html.childNodes[0] : html;
 			
 			return {
 			  cache: template.cache,
