@@ -31,7 +31,7 @@ to maintain a similar indentation structure that you would use for HTML.
 
 The variable, `rendered`, now has two properties. 
 
-1\. `rendered.html` which contains the rendered html:	
+1\. `rendered.html` which contains the rendered html (as a DOM element or DocumentFragment if there are multiple first-level children):	
 
 	<header>
 		<p>some content</p>
