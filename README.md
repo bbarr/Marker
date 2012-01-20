@@ -2,9 +2,9 @@
 
 Marker is a my take on HTML construction for javascript. It sports a chainable API complete with logical statements and iteration.
 
-**###Examples**
+###Examples
 
-**Registering**
+####Registering
 
 	Marker.register('header', function() {
 	  this
@@ -17,7 +17,7 @@ Marker is a my take on HTML construction for javascript. It sports a chainable A
 Note that elements in Marker require a closing tag; either `end`, or a final argument of `true` to emulate self-closing tags. This should allow you 
 to maintain a similar indentation structure that you would use for HTML.
 
-**Rendering**
+####Rendering
 
 	Marker.register('header', function() {
 	  this
