@@ -1,8 +1,8 @@
-##MarkerJS
+#MarkerJS
 
 Marker is a my take on HTML construction for javascript. It sports a chainable API complete with logical statements and iteration.
 
-###Examples
+##Examples
 
 **Registering**
 
@@ -95,7 +95,7 @@ The `each` method can handle both objects and arrays, passing the value and key 
 	
 Partials help you keep your templates DRY, and uncluttered.
 
-###API
+##API
 
 * `Marker.register( template_name, fn )`
 
