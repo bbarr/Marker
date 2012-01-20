@@ -4,6 +4,7 @@ Marker is a my take on HTML construction for javascript. It sports a chainable A
 ###Examples
 
 **Registering**
+
 	Marker.register('header', function() {
 	  this
 		.header()
@@ -16,6 +17,7 @@ Note that elements in Marker require a closing tag; either `end`, or a final arg
 to maintain a similar indentation structure that you would use for HTML.
 
 **Rendering**
+
 	Marker.register('header', function() {
 	  this
 		.header()
@@ -29,12 +31,14 @@ to maintain a similar indentation structure that you would use for HTML.
 The variable, `rendered`, now has two properties. 
 
 1\. `rendered.html` which contains the rendered html:	
+
 	<header>
 		<p>some content</p>
 		<a href="#">and a link!</a>
 	</header>
 
 2\. `rendered.cache` which is an object containing references to any cached elements:
+
 	rendered.cache //=> { linky: a (dom element) }
 
 **Logic**
