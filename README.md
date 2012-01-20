@@ -2,7 +2,7 @@
 
 Marker is a my take on HTML construction for javascript. It sports a chainable API complete with logical statements and iteration.
 
-###Examples
+**###Examples**
 
 **Registering**
 
