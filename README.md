@@ -31,7 +31,7 @@ to maintain a similar indentation structure that you would use for HTML.
 
 The variable, `rendered`, now has two properties. 
 
-1\. `rendered.html` which contains the rendered html (as a DOM element or DocumentFragment if there are multiple first-level children):	
+1\. `rendered.html` which contains the rendered DOM element (or DocumentFragment if there are multiple first-level children):	
 
 	<header>
 		<p>some content</p>
@@ -49,12 +49,9 @@ The variable, `rendered`, now has two properties.
 			.header()
 				.h1('My Site', true)
 				.when(user.logged_in)
-					.a({ href: '#', className: 'logout' })
-						.text('Logout')
-					.end()
+				  .a({ href: '#', className: 'logout' }, 'Logout')
 				.otherwise()
-					.a({ href: '#', className: 'login' })
-						.text('login')
+					.a({ href: '#', className: 'login' }, 'Login');
 	});
 
 Here we use `when` and `otherwise` to control the link choices depending on the user's session state. There is also an `else_when`, 
