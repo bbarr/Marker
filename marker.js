@@ -280,11 +280,9 @@ var Marker = (function() {
 			
 			var html = template._render.apply(template, ARRAY_SLICE.call(arguments, 1));
 			html = (!html.childNodes[1]) ? html.childNodes[0] : html;
-			
-			return {
-			  cache: template.cache,
-			  html: html
-			}
+
+      html.cache = template.cache;
+      return html;
 		}
   };
   
