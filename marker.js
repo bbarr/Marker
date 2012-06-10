@@ -35,6 +35,11 @@ var Marker = (function() {
   };
   
   Template.prototype = {
+
+    debug: function(fn) {
+      fn.call(this);
+      return this;
+    },
   
     partial: function(name) {
       

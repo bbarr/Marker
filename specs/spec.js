@@ -28,6 +28,27 @@ describe('Marker', function() {
         expect(template._pop).toHaveBeenCalled();
       });
     });
+
+    describe('#debug', function () {
+      it('should fire an anonymous function within the Marker chain and return true', function () {
+        var debugged = false, nested_debugged = false;
+        template
+          .when(true)
+            .div().end()
+          .end()
+          .debug(function () {
+            debugged = true;
+          })
+          .div()
+            .span().end()
+            .debug(function () {
+              nested_debugged = true;
+            })
+          .end();
+        expect(debugged).toBe(true);
+        expect(nested_debugged).toBe(true);
+      });
+    });
     
     describe('#partial', function() {
       

@@ -130,6 +130,9 @@ Partials help you keep your templates DRY, and uncluttered.
 
 	*If nothing in the current logic stack has yet matched, run the block of code between `otherwise` and its `end`.*
 	
+* `debug(fn)`
+
+	*Fires a function for debugging in the flow of a Marker chain
 
 * `end()`
 
