@@ -35,11 +35,6 @@ var Marker = (function() {
   };
   
   Template.prototype = {
-
-    debug: function(fn) {
-      fn.call(this);
-      return this;
-    },
   
     partial: function(name) {
       
@@ -59,7 +54,7 @@ var Marker = (function() {
 
 	    if (this.logic.active) {
 		    this.logic.states.top.depth--;
-		    if (this.logic.states.top.depth < 0) this.logic.exit();
+		    if (this.logic.states.top.depth === 0) this.logic.exit();
 		    else if (!this.logic.ignoring) this._pop();
 		  }
 		  else this._pop();
@@ -135,8 +130,19 @@ var Marker = (function() {
     create: function(tag, attrs, content) {
       
       this.current = document.createElement(tag);
+
+      if (typeof content !== 'undefined') {
+        if (typeof content === 'boolean') {
+          content = undefined
+        }
+      }
+      else {
+        if (typeof attrs === 'boolean') {
+          attrs = undefined
+        }
+      }
       
-      if (attrs) {
+      if (typeof attrs !== 'undefined') {
         if (typeof attrs !== 'object') {
           this._content(attrs);
         }
@@ -166,8 +172,10 @@ var Marker = (function() {
 			var attr, name, el = this.current;
 			for (name in attrs) {
 				attr = attrs[name];
+        if (attr === false) continue;
 				if (name === 'style') this._css(attr);
 				else if (name === 'cache') this.template.cache[attr] = el;
+        else if (name === 'className' || name === 'class') el.className = attr;
 				else {
 				  el[name] = attr;
 				  el.setAttribute(name, attr)
@@ -285,8 +293,9 @@ var Marker = (function() {
 			
 			var html = template._render.apply(template, ARRAY_SLICE.call(arguments, 1));
 			html = (!html.childNodes[1]) ? html.childNodes[0] : html;
-
+			
       html.cache = template.cache;
+
       return html;
 		}
   };
